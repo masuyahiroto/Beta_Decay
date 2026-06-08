@@ -9,3 +9,5 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+beta_decay_f90/obj/
+beta_decay_f90/test_runner
