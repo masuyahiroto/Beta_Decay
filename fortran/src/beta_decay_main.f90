@@ -55,6 +55,8 @@ program beta_decay_n126
   type(ShapeFactor) :: sf_ff    ! FF シェイプファクター
   type(Transition)  :: tr(2)
   integer  :: i, n_tr
+  integer, parameter :: FUNIT = 10
+  character(len=*), parameter :: DATFILE = 'results.dat'
 
   ! ----------------------------------------------------------
   ! N=126 核種の設定
@@ -105,6 +107,12 @@ program beta_decay_n126
   ! ----------------------------------------------------------
   q_factor = Q_STANDARD   ! 0.74
   ga_eff   = effective_ga(q_factor)
+
+  ! ----------------------------------------------------------
+  ! dat ファイルを開く
+  ! ----------------------------------------------------------
+  open(unit=FUNIT, file=DATFILE, status='replace', action='write')
+  write(FUNIT,'(A)') '# label  A  Z  Q_MeV  T_calc_s  T_exp_s  ratio  logft'
 
   ! ----------------------------------------------------------
   ! ヘッダー
@@ -183,7 +191,7 @@ program beta_decay_n126
       ratio = -1.0d0
     end if
 
-    ! ---- 出力 ----
+    ! ---- 標準出力 ----
     if (t_tot_s < huge(1.0d0)*0.9d0) then
       if (dat(i)%T_exp_s > 0.0d0) then
         write(*,'(A12,I4,I5,F9.3,F13.1,F13.1,F9.3,F8.2)') &
@@ -200,6 +208,17 @@ program beta_decay_n126
         dat(i)%Q_MeV, '   (invalid) ', dat(i)%T_exp_s, '   ---  ', '  ---   '
     end if
 
+    ! ---- dat ファイル出力 ----
+    if (t_tot_s < huge(1.0d0)*0.9d0) then
+      write(FUNIT,'(A12,I5,I4,F8.3,ES14.4,ES14.4,F9.3,F8.2)') &
+        trim(dat(i)%label), dat(i)%A, dat(i)%Z_par, dat(i)%Q_MeV, &
+        t_tot_s, dat(i)%T_exp_s, ratio, lft_gt
+    else
+      write(FUNIT,'(A12,I5,I4,F8.3,A14,ES14.4,A9,A8)') &
+        trim(dat(i)%label), dat(i)%A, dat(i)%Z_par, dat(i)%Q_MeV, &
+        '           NaN', dat(i)%T_exp_s, '      ---', '     ---'
+    end if
+
   end do
 
   write(*,'(A)') repeat('=', 78)
@@ -210,5 +229,8 @@ program beta_decay_n126
   write(*,'(A)') '      zeta = sum_pn <p||r C1 x sigma||n> * rho_pn  (rank 1 成分)'
   write(*,'(A)') repeat('=', 78)
   write(*,*)
+  write(*,'(A,A)') '  dat ファイルを出力しました: ', DATFILE
+
+  close(FUNIT)
 
 end program beta_decay_n126

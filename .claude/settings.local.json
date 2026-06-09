@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//usr/bin/**)",
+      "Read(//usr/local/bin/**)",
+      "Bash(dpkg -l)",
+      "Bash(sudo apt-get *)",
+      "Bash(/mnt/c/texlive/2025/bin/windows/pdflatex.exe -interaction=nonstopmode main.tex)",
+      "Bash(gfortran -fsyntax-only /mnt/c/Users/masum/Documents/git/HF/1807.f)",
+      "Bash(cp /mnt/c/Users/masum/Documents/git/HF/1807.f /mnt/c/Users/masum/Documents/git/HF/1807.f.bak)",
+      "Bash(sed -i '1d' /mnt/c/Users/masum/Documents/git/HF/1807.f)",
+      "Bash(sed -i 's/\\\\r//' /mnt/c/Users/masum/Documents/git/HF/1807.f)",
+      "Bash(sed -i 's/\\\\benddo\\\\b/end do/g' /mnt/c/Users/masum/Documents/git/HF/1807.f)",
+      "Bash(gfortran -ffixed-form 1807.f90 -o a.exe)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(./a.exe)",
+      "Bash(git ls-tree *)",
+      "Bash(awk '{print \"PID:\", $2, \"CPU:\", $3\"%\", \"MEM:\", $4\"%\"}')",
+      "Bash(gfortran *)"
+    ]
+  }
+}
