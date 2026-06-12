@@ -1,0 +1,418 @@
+\documentclass[12pt,a4paper]{ltjsarticle}
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage[margin=25mm]{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable,skins}
+
+\newtcolorbox{formula}[1][]{
+  colback=green!5, colframe=green!40!black,
+  fonttitle=\bfseries, title=計算式 #1, breakable
+}
+\newtcolorbox{result}[1][]{
+  colback=blue!5, colframe=blue!40!black,
+  fonttitle=\bfseries, title=#1, breakable
+}
+\newtcolorbox{problem}[1][]{
+  colback=red!5, colframe=red!60!black,
+  fonttitle=\bfseries, title=#1, breakable
+}
+\newtcolorbox{codebox}[1][]{
+  colback=gray!5, colframe=gray!60,
+  fonttitle=\bfseries, title=#1, breakable,
+  fontupper=\ttfamily\small
+}
+
+\title{\textbf{$\beta^-$ 崩壊半減期計算プログラム\\計算手順と実装解説}}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+%==========================================================
+\section{プログラム概要}
+%==========================================================
+
+\subsection{何を計算するか}
+
+このプログラムは Phys.\ Rev.\ C \textbf{109}, 064319 (2024) の計算手順に基づき，
+N=126・125 近傍核種の $\beta^-$ 崩壊半減期を計算する．
+
+\begin{itemize}
+  \item \textbf{入力}：殻模型コード KSHELL が出力する遷移行列要素（$B_\text{GT}$，$\xi$，$\zeta$）
+        および Q 値（AME2020）
+  \item \textbf{出力}：各核種の計算半減期・実験値との比・$\log ft$（画面 + \texttt{results.dat}）
+\end{itemize}
+
+\subsection{ファイル構成}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+ファイル & 役割 \\
+\midrule
+\texttt{src/mod\_constants.f90} & 物理定数の定義 \\
+\texttt{src/mod\_wave\_function.f90} & 波動関数・OBDM の格納 \\
+\texttt{src/mod\_matrix\_elements.f90} & 単粒子行列要素・$B$(GT) の計算 \\
+\texttt{src/mod\_quenching.f90} & クエンチング補正 \\
+\texttt{src/mod\_shape\_factor.f90} & シェイプファクター $C(W)$ の構成 \\
+\texttt{src/mod\_phase\_space.f90} & 位相空間積分 $f_0$（シンプソン法 200 点）\\
+\texttt{src/mod\_half\_life.f90} & 半減期・$\log ft$ の計算 \\
+\texttt{src/beta\_decay\_main.f90} & メインプログラム \\
+\texttt{build.sh} & ビルドスクリプト（make 不要）\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{ビルドと実行}
+
+\begin{codebox}[ビルド]
+cd fortran\\
+bash build.sh          \# コンパイル + 単体テスト実行
+\end{codebox}
+
+\begin{codebox}[計算実行]
+./beta\_decay\_calc     \# results.dat を出力
+\end{codebox}
+
+%==========================================================
+\section{計算の全手順}
+%==========================================================
+
+計算は以下の 6 ステップで行われる．
+
+\begin{center}
+\fbox{
+\begin{minipage}{0.88\textwidth}
+\begin{enumerate}
+  \item \textbf{物理定数の読み込み}（\texttt{mod\_constants.f90}）
+  \item \textbf{クエンチング係数の計算}（\texttt{mod\_quenching.f90}）\\
+        $g_A^\text{eff} = q \cdot g_A$
+  \item \textbf{最大電子エネルギー $W_0$ の計算}\\
+        $W_0 = Q_\beta / (m_e c^2) + 1$
+  \item \textbf{位相空間積分 $f_0$ の数値計算}（\texttt{mod\_phase\_space.f90}）\\
+        $f_0 = \int_1^{W_0} F(Z,W)\, p\, W\, (W_0-W)^2\, dW$
+  \item \textbf{半減期の計算}（\texttt{mod\_half\_life.f90}）\\
+        $T_{1/2} = \kappa\, /\, (g_A^{\text{eff}\,2} \cdot B_\text{GT} \cdot f_0)$
+  \item \textbf{結果の出力}（画面 + \texttt{results.dat}）
+\end{enumerate}
+\end{minipage}
+}
+\end{center}
+
+%==========================================================
+\section{各ステップの詳細}
+%==========================================================
+
+\subsection{ステップ 1：物理定数}
+
+\texttt{mod\_constants.f90} に定義された定数を以下に示す．
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+変数名 & 値 & 意味 \\
+\midrule
+\texttt{D\_CONST} & $6289.0$ s & 弱崩壊定数 $\kappa$（プログラム独自定義）\\
+\texttt{G\_A} & $1.2756$ & 軸性結合定数 \\
+\texttt{ME\_MEV} & $0.510998950$ MeV & 電子静止エネルギー \\
+\texttt{ALPHA} & $1/137.036 = 0.007297$ & 微細構造定数 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{problem}[論文との定数の差異]
+本論文（Phys.\ Rev.\ C 109, 064319）では $\kappa = 6144$ s を使用しているが，
+プログラムでは \texttt{D\_CONST} = 6289 s を用いている．
+この差異が半減期計算に系統的なずれを生じさせる可能性がある．
+\end{problem}
+
+\subsection{ステップ 2：クエンチング係数}
+
+\begin{formula}
+\begin{equation}
+  g_A^\text{eff} = q \cdot g_A
+\end{equation}
+\end{formula}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+変数名 & 値 & 意味 \\
+\midrule
+\texttt{Q\_STANDARD} & $0.74$ & 標準クエンチング因子 \\
+$g_A^\text{eff} = 0.74 \times 1.2756$ & $0.9440$ & 有効軸性結合定数 \\
+$(g_A^\text{eff})^2$ & $0.8910$ & 半減期式に入る因子 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{problem}[論文との差異]
+論文では $q_\text{GT} = 0.54$（$\chi^2$ 最小化で決定）を使用している．
+プログラムの $q = 0.74$ は異なる定義に基づく可能性がある（定義の違いに注意）．
+\end{problem}
+
+\subsection{ステップ 3：最大電子エネルギー $W_0$}
+
+\begin{formula}
+\begin{equation}
+  W_0 = \frac{Q_\beta}{m_e c^2} + 1
+\end{equation}
+$W_0 = 1$ が電子の静止エネルギー（運動量 $p = 0$）に対応．
+\end{formula}
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+核種 & $Q_\beta$ [MeV] & $W_0$ & 備考 \\
+\midrule
+$^{207}$Tl $\to$ $^{207}$Pb & 1.427 & 3.793 & N=126 \\
+$^{206}$Hg $\to$ $^{206}$Tl & 1.307 & 3.558 & N=126 \\
+$^{205}$Au $\to$ $^{205}$Hg & 2.660 & 6.206 & N=126 \\
+$^{204}$Pt $\to$ $^{204}$Au & 0.510 & 1.998 & N=126（Q 値が最小）\\
+$^{206}$Tl $\to$ $^{206}$Pb & 1.534 & 4.002 & N=125 \\
+$^{205}$Hg $\to$ $^{205}$Tl & 1.530 & 3.994 & N=125 \\
+$^{208}$Tl $\to$ $^{208}$Pb & 4.990 & 10.765 & N=127（比較用）\\
+$^{207}$Hg $\to$ $^{207}$Tl & 1.370 & 3.681 & N=127（比較用）\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{ステップ 4：Fermi 関数と位相空間積分}
+
+\subsubsection{Fermi 関数}
+
+\begin{formula}
+\textbf{点核近似}
+\begin{equation}
+  F(Z, W) = \frac{2\pi\eta}{1 - e^{-2\pi\eta}},
+  \quad \eta = \frac{\alpha Z W}{p},
+  \quad p = \sqrt{W^2 - 1}
+\end{equation}
+$W \to 1$（低エネルギー限界）で $F \to \infty$，$W$ が増すにつれ減少する．
+\end{formula}
+
+$^{207}$Tl（娘核 $^{207}$Pb，$Z_\text{dau}=82$，$W_0 = 3.793$）での代表値：
+
+\begin{center}
+\begin{tabular}{rrrr}
+\toprule
+$W$ & $p = \sqrt{W^2-1}$ & $\eta = \alpha Z W / p$ & $F(Z,W)$ \\
+\midrule
+$1.010$ & $0.142$ & $4.26$ & $26.78$ \\
+$1.698$ & $1.373$ & $0.740$ & $4.70$ \\
+$2.396$ & $2.178$ & $0.658$ & $4.20$ \\
+$3.094$ & $2.928$ & $0.632$ & $4.05$ \\
+$3.789$ & $3.654$ & $0.620$ & $3.98$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{位相空間積分}
+
+\begin{formula}
+\begin{equation}
+  f_0 = \int_1^{W_0} F(Z, W)\, p\, W\, (W_0 - W)^2\, dW
+\end{equation}
+シンプソン法 200 点で数値積分（\texttt{mod\_phase\_space.f90}）
+\end{formula}
+
+各核種の計算結果：
+
+\begin{center}
+\begin{tabular}{lrrl}
+\toprule
+核種 & $W_0$ & $f_0$ & 備考 \\
+\midrule
+$^{207}$Tl $\to$ $^{207}$Pb & 3.793 & $8.771 \times 10^{1}$ & \\
+$^{206}$Hg $\to$ $^{206}$Tl & 3.558 & $6.146 \times 10^{1}$ & \\
+$^{205}$Au $\to$ $^{205}$Hg & 6.206 & $1.110 \times 10^{3}$ & Q 値が大きい \\
+$^{204}$Pt $\to$ $^{204}$Au & 1.998 & $1.927 \times 10^{0}$ & Q 値が最小，$f_0$ も最小 \\
+$^{206}$Tl $\to$ $^{206}$Pb & 4.002 & $1.168 \times 10^{2}$ & \\
+$^{205}$Hg $\to$ $^{205}$Tl & 3.994 & $1.143 \times 10^{2}$ & \\
+$^{208}$Tl $\to$ $^{208}$Pb & 10.765 & $1.837 \times 10^{4}$ & Q 値が最大，$f_0$ も最大 \\
+$^{207}$Hg $\to$ $^{207}$Tl & 3.681 & $7.387 \times 10^{1}$ & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+$f_0$ は $Q_\beta$ に強く依存する（概ね $Q^5$ に比例）．
+$^{204}$Pt と $^{208}$Tl の $f_0$ の差は約 $10^4$ 倍であり，
+半減期に決定的な影響を与える．
+
+\subsection{ステップ 5：GT 半減期の計算}
+
+\begin{formula}
+\begin{equation}
+  T_{1/2} = \frac{\kappa}{(g_A^\text{eff})^2 \cdot B_\text{GT} \cdot f_0}
+  = \frac{6289}{0.8910 \cdot B_\text{GT} \cdot f_0}
+\end{equation}
+\end{formula}
+
+各核種の計算結果（現在の $B_\text{GT}$ 入力値はプレースホルダー）：
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lrrrr}
+\toprule
+核種 & $B_\text{GT}$（入力）& $f_0$ & $T_\text{calc}$ [s] & $T_\text{exp}$ [s] \\
+\midrule
+$^{207}$Tl & $1.0\times10^{-3}$ & $87.7$ & $8.05\times10^{4}$ & $286.2$ \\
+$^{206}$Hg & $6.0\times10^{-4}$ & $61.5$ & $1.91\times10^{5}$ & $509.0$ \\
+$^{205}$Au & $1.5\times10^{-2}$ & $1110$ & $4.24\times10^{2}$ & $186.0$ \\
+$^{204}$Pt & $1.0\times10^{-4}$ & $1.93$ & $3.66\times10^{7}$ & 不明 \\
+$^{206}$Tl & $8.0\times10^{-4}$ & $117$ & $7.55\times10^{4}$ & $248.0$ \\
+$^{205}$Hg & $5.0\times10^{-4}$ & $114$ & $1.24\times10^{5}$ & $317.0$ \\
+$^{208}$Tl & $1.2\times10^{-1}$ & $18373$ & $3.20\times10^{0}$ & $183.2$ \\
+$^{207}$Hg & $1.0\times10^{-2}$ & $73.9$ & $9.56\times10^{3}$ & $174.0$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+%==========================================================
+\section{現在の計算結果と問題点}
+%==========================================================
+
+\subsection{実験値との比較}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lrrr}
+\toprule
+核種 & $T_\text{calc}/T_\text{exp}$ & 状態 \\
+\midrule
+$^{207}$Tl $\to$ $^{207}$Pb & 281 & \textcolor{red}{大きすぎ} \\
+$^{206}$Hg $\to$ $^{206}$Tl & 376 & \textcolor{red}{大きすぎ} \\
+$^{205}$Au $\to$ $^{205}$Hg & 2.3 & \textcolor{orange}{ほぼ合っている} \\
+$^{206}$Tl $\to$ $^{206}$Pb & 305 & \textcolor{red}{大きすぎ} \\
+$^{205}$Hg $\to$ $^{205}$Tl & 390 & \textcolor{red}{大きすぎ} \\
+$^{208}$Tl $\to$ $^{208}$Pb & 0.017 & \textcolor{red}{小さすぎ} \\
+$^{207}$Hg $\to$ $^{207}$Tl & 55 & \textcolor{red}{大きすぎ} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{各計算ステップの信頼性}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+ステップ & 信頼性 & 根拠 \\
+\midrule
+物理定数 & \textcolor{green!60!black}{問題なし} & 文献値と一致（$\kappa$ の定義に注意）\\
+クエンチング $q=0.74$ & \textcolor{green!60!black}{問題なし} & 計算式として正確（論文値との差異は別途確認要）\\
+$W_0$（Q 値から）& \textcolor{green!60!black}{問題なし} & AME2020 の値，変換式も正確 \\
+Fermi 関数 $F(Z,W)$ & \textcolor{green!60!black}{問題なし} & 単体テスト全 PASS \\
+位相空間積分 $f_0$ & \textcolor{green!60!black}{問題なし} & 単体テスト全 PASS \\
+$B_\text{GT}$ 入力値 & \textcolor{red}{\textbf{要更新}} & \textbf{現在はプレースホルダー値} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{必要な $B_\text{GT}$ 値の逆算}
+
+実験半減期を再現するために必要な $B_\text{GT}$ を逆算する：
+
+\begin{formula}
+\begin{equation}
+  B_\text{GT}^\text{needed} = \frac{\kappa}{(g_A^\text{eff})^2 \cdot f_0 \cdot T_\text{exp}}
+\end{equation}
+\end{formula}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lrrr}
+\toprule
+核種 & $B_\text{GT}$（入力）& $B_\text{GT}$（必要値）& 倍率 \\
+\midrule
+$^{207}$Tl & $1.0\times10^{-3}$ & $2.81\times10^{-1}$ & \textcolor{red}{$\times 281$} \\
+$^{206}$Hg & $6.0\times10^{-4}$ & $2.26\times10^{-1}$ & \textcolor{red}{$\times 376$} \\
+$^{205}$Au & $1.5\times10^{-2}$ & $3.42\times10^{-2}$ & \textcolor{orange}{$\times 2.3$} \\
+$^{206}$Tl & $8.0\times10^{-4}$ & $2.44\times10^{-1}$ & \textcolor{red}{$\times 305$} \\
+$^{205}$Hg & $5.0\times10^{-4}$ & $1.95\times10^{-1}$ & \textcolor{red}{$\times 390$} \\
+$^{208}$Tl & $1.2\times10^{-1}$ & $2.10\times10^{-3}$ & \textcolor{red}{$\times 0.017$} \\
+$^{207}$Hg & $1.0\times10^{-2}$ & $5.49\times10^{-1}$ & \textcolor{red}{$\times 55$} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{problem}[結論]
+計算ロジック自体（Fermi 関数，位相空間積分）は正しく動作している．
+問題は \textbf{入力値 $B_\text{GT}$（および $\xi$，$\zeta$）がプレースホルダー値}であることである．
+\begin{itemize}
+  \item N=126 核種（$^{207}$Tl 等）：入力値が必要値の 300 倍以上小さい
+  \item $^{208}$Tl：GT のみの計算では短すぎる（FF 遷移の寄与を含める必要がある）
+\end{itemize}
+\textbf{次のステップ}：KSHELL で実際の殻模型計算を行い，$B_\text{GT}$，$\xi$，$\zeta$ を取得して
+\texttt{src/beta\_decay\_main.f90} の核種データ部分を更新する．
+\end{problem}
+
+%==========================================================
+\section{コードの主要部解説}
+%==========================================================
+
+\subsection{beta\_decay\_main.f90 の構造}
+
+メインプログラムは以下の順で実行される：
+
+\begin{enumerate}
+  \item \textbf{モジュールの use 宣言}：\\
+        \texttt{mod\_constants}，\texttt{mod\_quenching}，\texttt{mod\_shape\_factor}，\\
+        \texttt{mod\_phase\_space}，\texttt{mod\_half\_life} を取り込む
+
+  \item \textbf{NuclideDatum 型の定義}：\\
+        核種ラベル，$Z_\text{par}$，$A$，$Z_\text{dau}$，$Q$，$B_\text{GT}$，$\xi$，$\zeta$，$T_\text{exp}$ を一つの型にまとめる
+
+  \item \textbf{核種データの設定}：\\
+        \texttt{dat(1)--dat(8)} に 8 核種分のデータを代入
+
+  \item \textbf{核種ループ}（各核種について）：
+  \begin{enumerate}
+    \item GT 遷移：$B_\text{GT} > 0$ なら \texttt{phase\_space\_integral} で $f_0$ を計算，\texttt{Transition} 型に格納
+    \item FF 遷移：$|\xi|$ または $|\zeta| > 0$ なら FF シェイプファクターを構成して $f_0$ を計算
+    \item \texttt{total\_half\_life} で全半減期を計算（GT + FF の崩壊率を加算）
+    \item $\log ft$ を計算：$\log ft = \log_{10}(\kappa / (g_A^{\text{eff}\,2} \cdot B_\text{GT}))$
+  \end{enumerate}
+
+  \item \textbf{出力}：画面（\texttt{write(*,...)}) と \texttt{results.dat}（\texttt{write(FUNIT,...)}）の両方に書き出す
+\end{enumerate}
+
+\subsection{位相空間積分の実装（mod\_phase\_space.f90）}
+
+Fermi 関数：
+\begin{equation}
+  \eta = \frac{\alpha Z W}{p},\quad
+  F(Z,W) = \frac{2\pi\eta}{1 - e^{-2\pi\eta}}
+\end{equation}
+$W \leq 1$ のとき $F = 0$ として処理（物理的な下限）．
+
+積分はシンプソン法 200 点で $W \in [1, W_0]$ を積分する．
+シェイプファクター \texttt{ShapeFactor} 型を引数に取り，
+GT（$C(W) = B_\text{GT}$）と FF（$C(W) = K_0 + K_1 W + K_{-1}/W + K_2 W^2$）の両方に対応する．
+
+\subsection{単体テスト（tests/test\_runner.f90）}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+テストグループ & 検証内容 \\
+\midrule
+\texttt{test\_wave\_function} & OBDM の set/get，$J$，$Z$，$A$ の取得 \\
+\texttt{test\_matrix\_elements} & 単粒子行列要素，$B$(GT) の計算 \\
+\texttt{test\_quenching} & $g_A^\text{eff}$ の値，GT/FF クエンチング \\
+\texttt{test\_shape\_factor} & GT ($C = B_\text{GT}$)，FF ($C(W) \geq 0$) \\
+\texttt{test\_phase\_space} & $F(Z,W)$ の性質，$f \geq 0$，$Q$ 依存性 \\
+\texttt{test\_half\_life} & $T > 0$，$B_\text{GT} = 0$ で $T \to \infty$，等 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+全 \textbf{47 テスト PASS} を確認済み（\texttt{bash build.sh} 実行時に自動実行）．
+
+\end{document}

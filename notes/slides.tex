@@ -1,0 +1,377 @@
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage{luatexja}
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{array}
+
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\title[β崩壊 殻模型計算]{$\beta^-$ 崩壊の大規模殻模型計算\\
+  \small N=126, 125 核種の半減期と GT/FF 遷移の役割}
+\subtitle{Phys.\ Rev.\ C \textbf{109}, 064319 (2024)}
+\author{A.~Kumar, N.~Shimizu, Y.~Utsuno, C.~Yuan, P.~C.~Srivastava}
+\date{}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{目次}
+  \tableofcontents
+\end{frame}
+
+%==========================================================
+\section{研究の背景}
+%==========================================================
+
+\begin{frame}{r 過程元素合成と N=126 待機点核}
+  \begin{columns}
+    \column{0.55\textwidth}
+    \textbf{r 過程（rapid neutron-capture process）}
+    \begin{itemize}
+      \item 鉄より重い元素の約半分を合成
+      \item 超新星爆発・中性子星合体で発生
+      \item 高温（$T \approx 10^9$ K），高中性子密度（$>10^{20}$/cm$^3$）
+    \end{itemize}
+    \vspace{0.5em}
+    \textbf{魔法数 $N=126$ での待機（waiting point）}
+    \begin{itemize}
+      \item 中性子捕獲が停滞し，$\beta$ 崩壊で進む
+      \item 太陽 r 過程存在量の第3ピーク（$A \approx 195$）に対応
+      \item \alert{この領域の半減期データが不足}
+    \end{itemize}
+
+    \column{0.42\textwidth}
+    \begin{block}{本論文の目標}
+      \begin{itemize}
+        \item N=126, 125 核種（$Z=52$--$79$）の\\
+              $\beta^-$ 崩壊半減期を\\
+              大規模殻模型計算で系統的に評価
+        \item GT + FF 遷移を両方考慮
+        \item 実験値との定量的比較
+      \end{itemize}
+    \end{block}
+  \end{columns}
+\end{frame}
+
+%==========================================================
+\section{計算方法}
+%==========================================================
+
+\begin{frame}{$\beta^-$ 崩壊の計算式}
+  \begin{block}{半減期}
+    \begin{equation*}
+      t_{1/2} = \frac{\kappa}{f}, \qquad \kappa = 6144\;\text{s}
+    \end{equation*}
+  \end{block}
+
+  \begin{block}{位相空間積分}
+    \begin{equation*}
+      f = \int_1^{W_0} \underbrace{C(W)}_{\text{シェイプファクター}}\,
+      F(Z,W)\, p\, W\, (W_0-W)^2\, dW
+    \end{equation*}
+    $W_0 = Q_\beta/(m_ec^2)+1$，$p=\sqrt{W^2-1}$，$F$: Fermi 関数
+  \end{block}
+
+  \begin{columns}
+    \column{0.48\textwidth}
+    \textbf{GT 遷移}（$\Delta\pi = +1$）
+    \begin{equation*}
+      C(W) = B(\text{GT}) = \frac{|\mathcal{M}_\text{GT}|^2}{2J_i+1}
+    \end{equation*}
+    定数（$W$ 非依存）
+
+    \column{0.48\textwidth}
+    \textbf{FF 遷移}（$\Delta\pi = -1$）
+    \begin{equation*}
+      C(W) = K_0 + K_1 W + \frac{K_{-1}}{W} + K_2 W^2
+    \end{equation*}
+    ランク 0, 1, 2 の行列要素に依存
+  \end{columns}
+\end{frame}
+
+\begin{frame}{殻模型の設定}
+  \begin{columns}
+    \column{0.48\textwidth}
+    \textbf{模型空間}
+    \begin{center}
+    \begin{tabular}{ll}
+      \toprule
+      陽子 ($Z=50$--$82$) & $0g_{7/2}$, $1d_{5/2,3/2}$,\\
+                          & $2s_{1/2}$, $0h_{11/2}$ \\
+      \midrule
+      中性子 ($N=82$--$126$) & $0h_{9/2}$, $1f_{7/2,5/2}$,\\
+                             & $2p_{3/2,1/2}$, $0i_{13/2}$ \\
+      \bottomrule
+    \end{tabular}
+    \end{center}
+    M スキーム次元：最大 $1.33 \times 10^{10}$
+
+    \column{0.48\textwidth}
+    \textbf{有効相互作用：修正 KHHE}
+    \begin{itemize}
+      \item $^{208}$Pb コアの空孔-空孔チャネルに基づく
+      \item Yuan ら提案の補正：陽子間 2 体行列要素に $+0.1$ MeV
+      \item $\Rightarrow$ Q 値の精度向上（誤差 $<0.5$ MeV）
+    \end{itemize}
+    \vspace{0.3em}
+    \textbf{計算コード：KSHELL}\\
+    Fugaku スーパーコンピュータで実行
+  \end{columns}
+\end{frame}
+
+\begin{frame}{クエンチング因子}
+  殻模型は GT 強度を過大評価 $\Rightarrow$ \textbf{クエンチング因子}で補正
+
+  \textbf{GT クエンチング}：$\hat{O}_\text{GT}^\text{eff} = q_\text{GT}\,\hat{O}_\text{GT}$
+
+  \begin{center}
+  \begin{tabular}{lcc}
+    \toprule
+    & $^{199}$Pt $\to$ $^{199}$Au & $^{200}$Au$^m \to$ $^{200}$Hg \\
+    \midrule
+    $|M_\text{GT}|$ 実験 & 0.114 & 0.349 \\
+    $|M_\text{GT}|$ SM ($q=1$) & 0.297 & 0.608 \\
+    $|M_\text{GT}|$ SM ($q=0.54$) & 0.160 & 0.327 \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+
+  $\chi^2$ 最小化で決定：\alert{$q_\text{GT} = 0.54$}
+  \quad（経験則 $g_A^\text{eff} = 1.269\,A^{-0.12}$ では $q \approx 0.53$：整合）
+
+  \vspace{0.5em}
+  \textbf{FF クエンチング}（ランクごとに独立）：
+
+  \begin{center}
+  \begin{tabular}{ccccc}
+    \toprule
+    $q_{M_S^0}$ & $q_{M_T^0}$ & $q_x$ & $q_u$ & $q_z$ \\
+    \midrule
+    0.41 & 1.266 & 0.51 & 0.28 & 0.71 \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  N=125, 126 の既知 FF 遷移 18 件で決定
+\end{frame}
+
+%==========================================================
+\section{計算結果}
+%==========================================================
+
+\begin{frame}{低励起エネルギースペクトル}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \textbf{N=126 核種}（Fig. 4）
+    \begin{itemize}
+      \item $^{202}$Os から $^{206}$Hg の全核種で\\
+            基底状態 $J^\pi$ が実験と一致
+      \item 励起状態も概ね再現
+    \end{itemize}
+    \vspace{0.5em}
+    \textbf{N=125 核種}（Fig. 5）
+    \begin{itemize}
+      \item $^{202}$Ir：基底 $J^\pi$ 実験未確認\\
+            殻模型 → $0^-$（基底），$2^-$（+27 keV）
+      \item $^{204}$Au：実験 $2^-$，殻模型 $0^-$\\
+            （$2^-$ は +10 keV の第1励起状態）
+    \end{itemize}
+
+    \column{0.48\textwidth}
+    \begin{alertblock}{半減期への影響}
+      $^{202}$Os と $^{204}$Pt の $0^+$ 基底状態からの FF 遷移は
+      娘核 $^{202}$Ir・$^{204}$Au の $0^-$，$1^-$，$2^-$ 状態に強く遷移する．
+      これらの $J^\pi$ の正確な再現が半減期計算の精度を左右する．
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{半減期：実験値との比較}
+  \begin{center}
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabular}{lrrl}
+    \toprule
+    核種 & 殻模型 [s] & 実験 [s] & 評価 \\
+    \midrule
+    $^{202}$Ir (N=125) & 4.7  & 15(3)  & 過小 $\times 3.2$ \\
+    $^{203}$Pt (N=125) & 20.6 & 22(4)  & 良好 \\
+    $^{204}$Au (N=125) & 25.4 & 37.2(8) & 過小 $\times 1.5$ \\
+    \alert{$^{204}$Pt (N=126)} & \alert{13.9} & \alert{$16^{+6}_{-5}$} & \alert{誤差範囲内} \\
+    $^{205}$Au (N=126) & 23.7 & 32.5(14) & 過小 $\times 1.4$ \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+
+  \begin{columns}
+    \column{0.5\textwidth}
+    \textbf{先行研究との比較}（$^{204}$Pt）：
+    \begin{itemize}
+      \item Suzuki et al. 2018：38.3 s（実験の 2.4 倍過大）
+      \item 本論文：13.9 s（\alert{実験誤差範囲内}）
+    \end{itemize}
+
+    \column{0.48\textwidth}
+    \textbf{対数スケール誤差評価}（$n=5$）：
+    \begin{equation*}
+      \bar{r} = -0.18,\quad \sigma = 0.17,\quad 10^\sigma = 1.48
+    \end{equation*}
+    計算値は実験値を \alert{平均 1.5 倍以内}の精度で再現
+  \end{columns}
+\end{frame}
+
+\begin{frame}{GT と FF 遷移の寄与：$Z$ 依存性}
+  \begin{columns}
+    \column{0.52\textwidth}
+    \textbf{FF 寄与の Z 依存性}（N=126，Fig. 10）：
+    \begin{center}
+    \begin{tabular}{cl}
+      \toprule
+      陽子数 $Z$ & FF 寄与 \\
+      \midrule
+      $Z \approx 53$ & $\approx 3\%$（GT 支配）\\
+      $Z = 70$ & GT と FF がほぼ同等 \\
+      $Z \geq 70$ & FF が GT を上回る \\
+      $Z \approx 79$ & $\approx 100\%$（FF 支配）\\
+      \bottomrule
+    \end{tabular}
+    \end{center}
+    N=125 でも同様（$Z \geq 72$ で FF 支配）
+
+    \column{0.45\textwidth}
+    \begin{block}{先行モデルとの差異}
+      Marketin et al. (RQRPA)：\\
+      $Z=66$ で FF $70\%$を予測\\[4pt]
+      本殻模型：\\
+      $Z=66$ で FF $20\%$ 以下\\[4pt]
+      \alert{陽子欠乏側での FF 寄与は\\他モデルより小さい}
+    \end{block}
+  \end{columns}
+
+  \begin{alertblock}{物理的意味}
+    $Z=82$ 近傍では $\pi 0h_{11/2}$ が占有されるため GT が抑制（Pauli blocking）．
+    $\nu 0i_{13/2} \to \pi 0h_{11/2}$，$\nu fp \to \pi sd$ の FF 経路が支配的になる．
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{GT 強度関数とパウリ・ブロッキング}
+  \begin{columns}
+    \column{0.52\textwidth}
+    \textbf{GT ピークの特徴}（Fig. 12, 13）：
+    \begin{itemize}
+      \item 低励起エネルギーに顕著なピーク
+        \begin{itemize}
+          \item 偶 Z：$E_x = 3$--$6$ MeV
+          \item 奇 Z：$5$--$7$ MeV（ペアリング相関でシフト）
+        \end{itemize}
+      \item 支配的遷移：$\nu 0h_{9/2} \to \pi 0h_{11/2}$
+      \item $Z$ 減少でピーク強度が系統的に増大
+    \end{itemize}
+
+    \column{0.45\textwidth}
+    \textbf{パウリ・ブロッキングの機構}（Fig. 14）：
+    \begin{enumerate}
+      \item $Z$ 増加 $\Rightarrow$ $\pi 0h_{11/2}$ が占有
+      \item この軌道への遷移が禁止
+      \item $Z \to 82$ で GT 強度 $\to 0$
+      \item 逆に $Z$ 減少（空孔増加）で\\GT 強度が解放・増大
+    \end{enumerate}
+    \vspace{0.3em}
+    \alert{N=82 核種での $\pi 0g_{9/2}$ と同様の効果}
+  \end{columns}
+
+  \vspace{0.3em}
+  \textbf{ピーク位置の解析}（$Z=52$ の例）：
+  \begin{equation*}
+    E_\text{peak} \approx \underbrace{2.6\;\text{MeV}}_{\nu 0h_{9/2}\text{ ESPE}}
+    + \underbrace{1.6\;\text{MeV}}_{\pi 0h_{11/2}\text{ ESPE}}
+    + \underbrace{1.0\;\text{MeV}}_{V_{J=1}^{ph}}
+    = 5.2\;\text{MeV} \quad \checkmark
+  \end{equation*}
+\end{frame}
+
+\begin{frame}{$\beta$ 遅発中性子放出確率 $P_n$}
+  \begin{columns}
+    \column{0.52\textwidth}
+    \textbf{N=126 核種の $P_n$ の傾向}（Fig. 11）：
+
+    \begin{center}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{ll}
+      \toprule
+      $Z \leq 60$ & $P_n \approx 100\%$ \\
+      & $S_n \approx 1$--$2$ MeV，$Q_\beta$ 大\\
+      & GT 強度が全て $S_n$--$Q_\beta$ 間に分布 \\
+      \midrule
+      $62 \leq Z \leq 76$ & 急激に減少 \\
+      & 強い奇偶効果が出現 \\
+      \midrule
+      偶偶親核 & $P_n$ が特に小さい \\
+      \bottomrule
+    \end{tabular}
+    \end{center}
+
+    \column{0.45\textwidth}
+    \begin{block}{モデル比較}
+      \begin{itemize}
+        \item KTUY05：顕著な奇偶効果，\\$P_n$ が全体的に小さい
+        \item FRDM19：弱い奇偶効果，\\本殻模型に近いトレンド
+        \item \alert{N=126 域の実験データなし}\\（今後の検証が必要）
+      \end{itemize}
+    \end{block}
+
+    \vspace{0.3em}
+    奇奇核での $P_n$ は他モデルより大きく，
+    低エネルギー域での GT 強度の分布が $S_n$ 以上に多く出る．
+  \end{columns}
+\end{frame}
+
+%==========================================================
+\section{まとめ}
+%==========================================================
+
+\begin{frame}{まとめ}
+  \begin{columns}
+    \column{0.52\textwidth}
+    \textbf{主な成果}
+    \begin{enumerate}
+      \item \textbf{半減期の再現}\\
+            実験値を平均 1.5 倍以内の精度で再現\\
+            （$\sigma = 0.17$，$10^\sigma = 1.48$）
+      \item \textbf{FF 遷移の役割の定量化}\\
+            $Z \geq 70$ (N=126) で FF が支配的\\
+            陽子欠乏側では GT が支配
+      \item \textbf{GT 強度の Z 依存性の解明}\\
+            パウリ・ブロッキングの解放により\\
+            $Z$ 減少で GT ピークが系統的増大
+      \item \textbf{$P_n$ の系統的予測}\\
+            $Z \leq 60$ で $\approx 100\%$，\\
+            N=126 での初めての系統的計算
+    \end{enumerate}
+
+    \column{0.45\textwidth}
+    \begin{alertblock}{r 過程への意義}
+      N=126 待機点核（$A \approx 195$）の
+      信頼性の高い理論的半減期データを提供．
+      第3 r 過程ピークの
+      元素合成シミュレーションへの
+      重要な入力データとなる．
+    \end{alertblock}
+
+    \vspace{0.5em}
+    \begin{block}{今後の課題}
+      \begin{itemize}
+        \item 陽子欠乏側（$Z \ll 70$）の\\
+              FF 予測のモデル間差異の解明
+        \item 実験データの蓄積による検証
+      \end{itemize}
+    \end{block}
+  \end{columns}
+\end{frame}
+
+\end{document}
