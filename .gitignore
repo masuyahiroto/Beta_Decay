@@ -7,9 +7,15 @@
 *.fdb_latexmk
 __pycache__/
 *.pyc
+*.o
+*.mod
+*.dat
+*.exe
+*.tex
 .pytest_cache/
 fortran/obj/
 fortran/test_runner
 fortran/beta_decay_calc
+
 # 参考文献 PDF は docs/ に置く (git管理外)
 *.pdf
